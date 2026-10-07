@@ -1,0 +1,773 @@
+/* 🦊Agent 搜索 · 独立版 —— 面板与悬浮控制台样式
+   设计要点：
+   1. 全部用酒馆主题变量（--SmartThemeBodyColor 等）并带兜底色，亮/暗主题都能看清；
+   2. 字号不再低于 11.5px，标签用正文色、提示用正文色降透明度，不用低对比灰；
+   3. 输入框显式设置 color / -webkit-text-fill-color，修掉 iOS Safari 输入文字发灰的问题；
+   4. 按钮改网格 + nowrap + 省略号，手机上不会再一个字一行竖排。 */
+
+/* ---------------- 面板根 ---------------- */
+
+#agent-search-settings {
+    color: var(--SmartThemeBodyColor, #e8e0da);
+    font-size: var(--mainFontSize, 14px);
+    line-height: 1.55;
+}
+
+#agent-search-settings .ag-note {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, #e8e0da);
+    opacity: 0.82;
+    margin: 6px 0 10px;
+}
+
+#agent-search-settings .ag-section {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(232, 120, 74, 0.28));
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: var(--black30a, rgba(0, 0, 0, 0.22));
+}
+
+#agent-search-settings .ag-section-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--SmartThemeQuoteColor, #f0a070);
+    margin-bottom: 8px;
+    padding-left: 8px;
+    border-left: 3px solid var(--SmartThemeQuoteColor, #e8784a);
+    line-height: 1.3;
+}
+
+/* ---------------- 行 / 字段 ---------------- */
+
+#agent-search-settings .ag-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px dashed var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.12));
+}
+
+#agent-search-settings .ag-row:last-of-type {
+    border-bottom: none;
+}
+
+#agent-search-settings .ag-row > span {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.4;
+    font-size: 12.5px;
+}
+
+#agent-search-settings .ag-row strong {
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+}
+
+#agent-search-settings .ag-row small {
+    font-size: 11.5px;
+    color: var(--SmartThemeBodyColor, #e8e0da);
+    opacity: 0.78;
+}
+
+#agent-search-settings .ag-row input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+}
+
+#agent-search-settings .ag-danger span strong {
+    color: var(--SmartThemeWarningColor, #ffb3b3);
+}
+
+#agent-search-settings .ag-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 14px;
+}
+
+#agent-search-settings .ag-span2 {
+    grid-column: span 2;
+}
+
+#agent-search-settings .ag-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#agent-search-settings .ag-field > span {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--SmartThemeBodyColor, #e8e0da);
+    opacity: 0.95;
+}
+
+#agent-search-settings .ag-field code {
+    font-size: 11.5px;
+    padding: 0 3px;
+    border-radius: 3px;
+    background: var(--black30a, rgba(0, 0, 0, 0.3));
+    color: var(--SmartThemeQuoteColor, #f0a070);
+}
+
+/* 输入控件：显式着色（含 iOS 的 -webkit-text-fill-color），任何主题都不发灰 */
+#agent-search-settings input[type='text'],
+#agent-search-settings input[type='number'],
+#agent-search-settings input[type='password'],
+#agent-search-settings select,
+#agent-search-settings textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    -webkit-text-fill-color: var(--SmartThemeBodyColor, #f0e8e2);
+    background-color: var(--black30a, rgba(0, 0, 0, 0.32));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.18));
+    border-radius: 7px;
+    padding: 5px 8px;
+    opacity: 1;
+    min-height: 30px;
+}
+
+#agent-search-settings input::placeholder,
+#agent-search-settings textarea::placeholder {
+    color: var(--SmartThemeBodyColor, #e8e0da);
+    -webkit-text-fill-color: var(--SmartThemeBodyColor, #e8e0da);
+    opacity: 0.45;
+}
+
+#agent-search-settings input:focus,
+#agent-search-settings select:focus,
+#agent-search-settings textarea:focus {
+    outline: 2px solid var(--SmartThemeQuoteColor, #e8784a);
+    outline-offset: 1px;
+}
+
+#agent-search-settings textarea {
+    resize: vertical;
+    font-family: var(--monoFontFamily, monospace);
+    font-size: 12px;
+    min-height: 56px;
+}
+
+/* ---------------- 按钮：网格排布，手机上不再竖排 ---------------- */
+
+#agent-search-settings .ag-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+#agent-search-settings .ag-buttons .menu_button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 34px;
+    margin: 0;
+    padding: 6px 10px;
+    font-size: 12.5px;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-radius: 8px;
+}
+
+#agent-search-settings .ag-import-label {
+    cursor: pointer;
+}
+
+#agent-search-settings .ag-inline-check {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+}
+
+/* ---------------- 模型列表胶囊 ---------------- */
+
+#agent-search-settings .ag-model-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    max-height: 170px;
+    overflow-y: auto;
+}
+
+#agent-search-settings .ag-model-chip {
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(232, 120, 74, 0.4));
+    background: var(--white20a, rgba(255, 255, 255, 0.08));
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+#agent-search-settings .ag-model-chip.is-active {
+    background: var(--SmartThemeQuoteColor, #e8784a);
+    color: var(--SmartThemeBotMesColor, #1b1512);
+    font-weight: 700;
+}
+
+/* ---------------- 悬浮控制台 ---------------- */
+
+#ag-quick-panel {
+    position: fixed;
+    right: 18px;
+    bottom: 92px;
+    width: 304px;
+    z-index: 12000;
+    max-height: min(72vh, 560px);
+    display: flex;
+    flex-direction: column;
+    background: var(--SmartThemeBlurTintColor, rgba(28, 22, 20, 0.94));
+    border: 1px solid var(--SmartThemeQuoteColor, rgba(232, 120, 74, 0.45));
+    border-radius: 12px;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    font-size: 12.5px;
+    overflow: hidden;
+}
+
+#ag-quick-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 11px;
+    background: var(--SmartThemeQuoteColor, rgba(232, 120, 74, 0.85));
+    color: var(--SmartThemeBotMesColor, #1b1512);
+    cursor: move;
+    font-weight: 700;
+    user-select: none;
+}
+
+#ag-quick-toggle {
+    cursor: pointer;
+    padding: 0 6px;
+}
+
+#ag-quick-body {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+#ag-quick-status {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#ag-quick-info {
+    font-size: 11.5px;
+    opacity: 0.82;
+    min-height: 12px;
+}
+
+#ag-quick-keywords,
+#ag-quick-preview {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 9px;
+    border-radius: 7px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.2));
+    background: var(--black30a, rgba(0, 0, 0, 0.35));
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    -webkit-text-fill-color: var(--SmartThemeBodyColor, #f0e8e2);
+    font-size: 12.5px;
+}
+
+#ag-quick-preview {
+    font-family: var(--monoFontFamily, monospace);
+    font-size: 11.5px;
+    resize: vertical;
+}
+
+#ag-quick-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+#ag-quick-buttons button {
+    padding: 7px 8px;
+    border-radius: 7px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.2));
+    background: var(--white20a, rgba(255, 255, 255, 0.1));
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    cursor: pointer;
+    font-size: 12px;
+    min-height: 32px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#ag-quick-buttons button:hover {
+    background: var(--SmartThemeQuoteColor, rgba(232, 120, 74, 0.4));
+    color: var(--SmartThemeBotMesColor, #1b1512);
+}
+
+#ag-keyword-panel {
+    background: var(--black30a, rgba(232, 120, 74, 0.14));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(232, 120, 74, 0.3));
+    border-radius: 8px;
+    padding: 7px 9px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#ag-keyword-count {
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+#ag-keyword-list {
+    opacity: 0.88;
+    word-break: break-all;
+}
+
+/* ---------------- 窄屏 ---------------- */
+
+@media (max-width: 768px) {
+    #agent-search-settings .ag-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #agent-search-settings .ag-span2 {
+        grid-column: span 1;
+    }
+
+    #agent-search-settings .ag-buttons {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #agent-search-settings .ag-buttons .menu_button {
+        font-size: 12px;
+        padding: 6px 6px;
+    }
+
+    #ag-quick-panel {
+        width: min(320px, calc(100vw - 20px));
+        bottom: 74px;
+        right: 10px;
+    }
+}
+
+@media (max-width: 380px) {
+    #agent-search-settings .ag-buttons {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 实时提示（搜索实际会用哪个地址）：要显眼 */
+#agent-search-settings .ag-hint-strong {
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.5;
+    word-break: break-all;
+    padding: 6px 8px;
+    border-radius: 7px;
+    background: var(--black30a, rgba(0, 0, 0, 0.28));
+    border-left: 3px solid var(--SmartThemeQuoteColor, #e8784a);
+    color: var(--SmartThemeQuoteColor, #f0a070);
+    opacity: 1;
+}
+
+/* ---------------- 资料库窗口：可拖动、可缩放、不霸屏 ---------------- */
+
+#ag-lib-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 13000;
+    display: none;
+    /* 不做全屏遮罩：其余界面照样能点，窗口只占自己那块 */
+    pointer-events: none;
+    background: transparent;
+}
+
+#ag-lib-modal.is-open {
+    display: block;
+}
+
+#ag-lib-dialog {
+    position: fixed;
+    left: 50%;
+    top: 8vh;
+    transform: translateX(-50%);
+    width: min(760px, calc(100vw - 16px));
+    height: min(76vh, 720px);
+    min-width: 300px;
+    min-height: 240px;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--SmartThemeQuoteColor, #e8784a);
+    background: var(--SmartThemeBlurTintColor, rgba(24, 19, 17, 0.98));
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    font-size: 13px;
+    /* 桌面浏览器右下角可拉伸 */
+    resize: both;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+#ag-lib-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: move;
+    touch-action: none;
+    padding: 2px 0 6px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.14));
+    user-select: none;
+}
+
+.ag-lib-head-btns {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.ag-lib-head-btns > span {
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 15px;
+}
+
+#ag-lib-meta {
+    font-size: 11.5px;
+    opacity: 0.88;
+    word-break: break-all;
+    flex: 0 0 auto;
+}
+
+#ag-lib-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 2px;
+    min-height: 80px;
+}
+
+#ag-lib-foot {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+    gap: 6px;
+}
+
+#ag-lib-foot .menu_button {
+    margin: 0;
+    min-height: 32px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ag-lib-item {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.16));
+    border-radius: 9px;
+    padding: 7px 9px;
+    background: var(--black30a, rgba(0, 0, 0, 0.25));
+}
+
+.ag-lib-item-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+.ag-lib-date {
+    width: 120px;
+    flex: 0 0 auto;
+    font-size: 12px;
+}
+
+.ag-lib-len {
+    font-size: 11.5px;
+    opacity: 0.78;
+    flex: 1 1 auto;
+}
+
+.ag-lib-del {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 14px;
+    padding: 0 4px;
+}
+
+.ag-lib-text {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 96px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    -webkit-text-fill-color: var(--SmartThemeBodyColor, #f0e8e2);
+    background: var(--black30a, rgba(0, 0, 0, 0.35));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.18));
+    border-radius: 7px;
+    padding: 6px 8px;
+    resize: vertical;
+}
+.ag-lib-empty {
+    font-size: 12.5px;
+    opacity: 0.85;
+    padding: 8px;
+}
+/* 手机：悬浮窗放进视口内、内容可滚、避开酒馆底栏 */
+#ag-quick-body {
+    overflow-y: auto;
+    max-height: calc(72vh - 44px);
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+    #ag-quick-panel {
+        right: 8px;
+        bottom: 88px;
+        width: min(330px, calc(100vw - 16px));
+        z-index: 12000;
+    }
+
+    #ag-quick-head {
+        padding: 10px 12px;
+        font-size: 13.5px;
+    }
+
+    #ag-quick-buttons button {
+        min-height: 36px;
+        font-size: 12.5px;
+    }
+}
+
+/* 手动搜索区块（手机主入口）突出显示 */
+#agent-search-settings .ag-section-primary {
+    border-width: 2px;
+    border-color: var(--SmartThemeQuoteColor, #e8784a);
+    background: var(--black30a, rgba(232, 120, 74, 0.12));
+}
+
+#agent-search-settings #ag-manual-preview {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 110px;
+    font-family: var(--monoFontFamily, monospace);
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    -webkit-text-fill-color: var(--SmartThemeBodyColor, #f0e8e2);
+    background: var(--black30a, rgba(0, 0, 0, 0.35));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.18));
+    border-radius: 7px;
+    padding: 6px 8px;
+    margin-top: 6px;
+}
+/* ---------------- 资料库：词条列表样式 ---------------- */
+
+#ag-lib-worldbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    flex: 0 0 auto;
+}
+
+#ag-lib-worldbar select {
+    flex: 1 1 160px;
+    min-width: 120px;
+    min-height: 30px;
+    font-size: 12.5px;
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    -webkit-text-fill-color: var(--SmartThemeBodyColor, #f0e8e2);
+    background-color: var(--black30a, rgba(0, 0, 0, 0.35));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.2));
+    border-radius: 7px;
+    padding: 4px 6px;
+}
+
+#ag-lib-worldbar .menu_button {
+    margin: 0;
+    min-height: 30px;
+    padding: 4px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.ag-entry {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.16));
+    border-left: 4px solid var(--SmartThemeQuoteColor, #e8784a);
+    border-radius: 9px;
+    background: var(--black30a, rgba(0, 0, 0, 0.25));
+    overflow: hidden;
+}
+
+.ag-entry.is-open {
+    background: var(--black30a, rgba(232, 120, 74, 0.12));
+}
+
+.ag-entry-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.ag-entry-row:hover {
+    background: var(--white20a, rgba(255, 255, 255, 0.06));
+}
+
+.ag-entry-light {
+    font-size: 14px;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.ag-entry-name {
+    font-weight: 600;
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ag-entry-meta {
+    flex: 1 1 auto;
+    font-size: 11.5px;
+    opacity: 0.72;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.ag-entry-arrow {
+    flex: 0 0 auto;
+    opacity: 0.8;
+}
+
+.ag-entry-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 10px 10px;
+    border-top: 1px dashed var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.14));
+}
+
+.ag-entry-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    font-size: 12.5px;
+}
+
+.ag-entry-toggles label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ag-entry-toggles .menu_button {
+    margin: 0;
+    margin-left: auto;
+    min-height: 30px;
+    font-size: 12px;
+}
+
+.ag-entry-detail input[type='text'],
+.ag-entry-detail textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 12.5px;
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    -webkit-text-fill-color: var(--SmartThemeBodyColor, #f0e8e2);
+    background: var(--black30a, rgba(0, 0, 0, 0.35));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.18));
+    border-radius: 7px;
+    padding: 6px 8px;
+}
+
+/* ---------------- 悬浮入口：悬浮按钮按钮 ---------------- */
+
+#ag-quick-fab {
+    position: fixed;
+    right: 12px;
+    bottom: 96px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 2147483000;
+    background: var(--SmartThemeQuoteColor, #e8784a);
+    color: var(--SmartThemeBotMesColor, #1b1512);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    user-select: none;
+    touch-action: none;
+    transition: transform 0.12s ease;
+}
+
+#ag-quick-fab:hover {
+    transform: scale(1.08);
+}
+
+#ag-quick-fab:active {
+    transform: scale(0.94);
+}
+
+/* 展开后的面板：没有横条，紧贴悬浮按钮 */
+#ag-quick-panel {
+    position: fixed;
+    width: min(320px, calc(100vw - 16px));
+    max-height: min(72vh, 560px);
+    z-index: 2147483000;
+    background: var(--SmartThemeBlurTintColor, rgba(24, 19, 17, 0.97));
+    border: 1px solid var(--SmartThemeQuoteColor, #e8784a);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    color: var(--SmartThemeBodyColor, #f0e8e2);
+    font-size: 12.5px;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+#ag-quick-panel::after {
+    content: '🦊';
+    position: absolute;
+    right: 8px;
+    top: 6px;
+    font-size: 14px;
+    opacity: 0.5;
+    pointer-events: none;
+}

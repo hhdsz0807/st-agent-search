@@ -1,0 +1,439 @@
+<div id="agent-search-settings" class="agent-search-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>🦊 Agent 搜索 · 独立版</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div class="ag-note">
+                从《狐神抚 · 毓忻》原预设脚本里抽出的Agent 搜索子系统。默认配置与原预设逐字一致；
+                本机 SearXNG 用户点一下「填入本机 SearXNG」即可。
+            </div>
+
+            <!-- ============ 手动搜索（手机主入口，不用悬浮窗也能用） ============ -->
+            <div class="ag-section ag-section-primary">
+                <div class="ag-section-title">🔎 手动搜索</div>
+                <label class="ag-field ag-span2">
+                    <span>关键词（留空 = 让模型从上下文自动提取；多个用逗号或换行分隔）</span>
+                    <input id="ag-manual-keywords" type="text" placeholder="例如：原神 可莉, 孤独摇滚">
+                </label>
+                <div class="ag-buttons">
+                    <button id="ag-manual-run" class="menu_button">🔎 开始搜索</button>
+                    <button id="ag-manual-cancel" class="menu_button">⏹ 取消</button>
+                    <button id="ag-manual-save" class="menu_button">💾 存进资料库</button>
+                    <button id="ag-manual-openlib" class="menu_button">📚 资料库</button>
+                    <button id="ag-open-quick" class="menu_button">🪟 显示悬浮窗</button>
+                    <button id="ag-manual-selfcheck" class="menu_button">🩺 自检</button>
+                    <button id="ag-quick-diagnose" class="menu_button">🔍 诊断悬浮窗</button>
+                </div>
+                <div id="ag-manual-status" class="ag-note ag-hint-strong">状态：待机</div>
+                <textarea id="ag-manual-preview" rows="6" placeholder="搜索结果预览会显示在这里"></textarea>
+            </div>
+
+            <!-- ============ 搜索源 ============ -->
+            <div class="ag-section">
+                <div class="ag-section-title">🔎 搜索源</div>
+                <label class="ag-row">
+                    <span><strong>Wikipedia（中文）</strong><small>免费、无需配置</small></span>
+                    <input id="ag-enable-wikipedia" type="checkbox">
+                </label>
+                <label class="ag-row">
+                    <span><strong>萌娘百科</strong><small>ACG 词条友好</small></span>
+                    <input id="ag-enable-moegirl" type="checkbox">
+                </label>
+                <label class="ag-row">
+                    <span><strong>自定义来源 API</strong><small>SearXNG / 任意 JSON 搜索接口</small></span>
+                    <input id="ag-enable-custom" type="checkbox">
+                </label>
+
+                <label class="ag-field ag-span2">
+                    <span>整理方式</span>
+                    <select id="ag-provider-mode">
+                        <option value="reader">把网址交给 AI 去读并整理（推荐）</option>
+                        <option value="api">插件用官方 API 取正文再整理</option>
+                    </select>
+                </label>
+                <div class="ag-note">
+                    「交给 AI 读」= 插件只负责找出网址（自定义来源取前 N 条，维基/萌娘取对应条目），
+                    由阅读器抓整页正文后交给模型，整理成**角色扮演用的人物档案**（身份/外貌/性格/能力/背景/人际关系/语言风格/扮演要点）。
+                </div>
+                <div class="ag-grid">
+                    <label class="ag-field">
+                        <span>最多交给 AI 的网址数（默认 3）</span>
+                        <input id="ag-reader-max-urls" type="number" min="1">
+                    </label>
+                    <label class="ag-field">
+                        <span>单页正文上限（字，0=不限；默认不限）</span>
+                        <input id="ag-reader-max-chars" type="number" min="0">
+                    </label>
+                    <label class="ag-field">
+                        <span>每个百科站给几个条目</span>
+                        <input id="ag-reader-pages" type="number" min="1">
+                    </label>
+                </div>
+                <label class="ag-row">
+                    <span><strong>Jina 全文抓取</strong><small>用 r.jina.ai 抓网页正文</small></span>
+                    <input id="ag-enable-jina" type="checkbox">
+                </label>
+                <label class="ag-row">
+                    <span><strong>Jina 抓取前置筛选</strong><small>先让模型判断哪些网页值得抓</small></span>
+                    <input id="ag-enable-jina-prefilter" type="checkbox">
+                </label>
+            </div>
+
+            <!-- ============ 自定义搜索 API ============ -->
+            <div class="ag-section">
+                <div class="ag-section-title">🔧 自定义搜索 API（SearXNG 兼容）</div>
+                <div class="ag-note">
+                    URL 里用 <code>{keyword}</code> 作为搜索词占位符，<code>{language}</code> 作为语言占位符。
+                </div>
+                <div class="ag-grid">
+                    <label class="ag-field ag-span2">
+                        <span>① 搜索用的 API 地址（Agent 搜索搜索走这里）</span>
+                        <input id="ag-api-url" type="text" placeholder="http://localhost:18080/search?q={keyword}&format=json&language={language}">
+                    </label>
+                    <div id="ag-api-url-hint" class="ag-note ag-hint-strong"></div>
+                    <div class="ag-buttons ag-span2">
+                        <button id="ag-api-test-direct" class="menu_button">🔌 测试本地址（按输入框当前值）</button>
+                    </div>
+                    <label class="ag-field">
+                        <span>请求方法</span>
+                        <select id="ag-api-method">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                        </select>
+                    </label>
+                    <label class="ag-field">
+                        <span>语言</span>
+                        <input id="ag-api-language" type="text" placeholder="zh-CN">
+                    </label>
+                    <label class="ag-field">
+                        <span>API Key（可选）</span>
+                        <input id="ag-api-key" type="password" autocomplete="off">
+                    </label>
+                    <label class="ag-field">
+                        <span>Key 请求头名</span>
+                        <input id="ag-api-key-header" type="text" placeholder="Authorization">
+                    </label>
+                    <label class="ag-field">
+                        <span>Key 请求头模板</span>
+                        <input id="ag-api-key-template" type="text" placeholder="Bearer {key}">
+                    </label>
+                    <label class="ag-field">
+                        <span>Key 查询参数名</span>
+                        <input id="ag-api-query-param" type="text" placeholder="（留空则用请求头）">
+                    </label>
+                    <label class="ag-field ag-span2">
+                        <span>POST 请求体模板</span>
+                        <input id="ag-api-body-template" type="text" placeholder='{"query":"{keyword}"}'>
+                    </label>
+                    <label class="ag-field">
+                        <span>结果路径</span>
+                        <input id="ag-api-result-path" type="text" placeholder="results">
+                    </label>
+                    <label class="ag-field">
+                        <span>额外参数</span>
+                        <input id="ag-api-extra-params" type="text" placeholder="&safesearch=0">
+                    </label>
+                    <label class="ag-field">
+                        <span>标题字段</span>
+                        <input id="ag-api-title-field" type="text" placeholder="title">
+                    </label>
+                    <label class="ag-field">
+                        <span>摘要字段</span>
+                        <input id="ag-api-snippet-field" type="text" placeholder="content">
+                    </label>
+                    <label class="ag-field">
+                        <span>链接字段</span>
+                        <input id="ag-api-link-field" type="text" placeholder="url">
+                    </label>
+                </div>
+                <div class="ag-buttons">
+                    <button id="ag-fill-local-searxng" class="menu_button">填入本机 SearXNG</button>
+                    <button id="ag-api-test" class="menu_button">测试来源</button>
+                </div>
+            </div>
+
+            <!-- ============ 搜索参数 ============ -->
+            <div class="ag-section">
+                <div class="ag-section-title">⚙️ 搜索参数</div>
+                <div class="ag-grid">
+                    <label class="ag-field">
+                        <span>单次最多关键词数（0=不限）</span>
+                        <input id="ag-max-keywords" type="number" min="0">
+                    </label>
+                    <label class="ag-field">
+                        <span>每个关键词结果数</span>
+                        <input id="agent-search-results-count" type="number" min="1">
+                    </label>
+                    <label class="ag-field">
+                        <span>每个源取前几个词条的正文（默认 2）</span>
+                        <input id="ag-source-top-pages" type="number" min="1">
+                    </label>
+                    <label class="ag-field">
+                        <span>单条正文保留上限（字，默认 4000）</span>
+                        <input id="ag-source-extract-chars" type="number" min="200">
+                    </label>
+                    <label class="ag-field">
+                        <span>搜索源超时 (ms)</span>
+                        <input id="agent-search-timeout" type="number" min="1000">
+                    </label>
+                    <label class="ag-field">
+                        <span>单页全文超时 (ms)</span>
+                        <input id="ag-jina-page-timeout" type="number" min="1000">
+                    </label>
+                    <label class="ag-field">
+                        <span>正文长度上限（0=不裁剪）</span>
+                        <input id="ag-max-extract-length" type="number" min="0">
+                    </label>
+                    <label class="ag-field">
+                        <span>送入分析模型的最近楼层数</span>
+                        <input id="ag-context-floors" type="number" min="0">
+                    </label>
+                    <label class="ag-field">
+                        <span>每次搜索最多抓几页全文（全局，默认 3）</span>
+                        <input id="ag-jina-max-total" type="number" min="0">
+                    </label>
+                    <label class="ag-field">
+                        <span>每关键词最多抓几页全文</span>
+                        <input id="ag-jina-max-urls" type="number" min="0">
+                    </label>
+                    <label class="ag-field">
+                        <span>并发抓取数（越大越快，默认 3）</span>
+                        <input id="ag-jina-concurrency" type="number" min="1">
+                    </label>
+                    <label class="ag-field">
+                        <span>抓取阶段总预算 (ms，默认 25000)</span>
+                        <input id="ag-jina-budget" type="number" min="3000">
+                    </label>
+                    <label class="ag-field">
+                        <span>正文最短有效长度</span>
+                        <input id="ag-jina-min-length" type="number" min="0">
+                    </label>
+                </div>
+            </div>
+
+            <!-- ============ 智能与过滤 ============ -->
+            <div class="ag-section">
+                <div class="ag-section-title">🧠 智能与过滤</div>
+                <label class="ag-row">
+                    <span><strong>智能跳过已知内容</strong><small>已覆盖的关键词不再重复整理</small></span>
+                    <input id="ag-smart-skip" type="checkbox">
+                </label>
+                <label class="ag-row">
+                    <span><strong>AI 过滤搜索结果</strong><small>清理同名歧义、低相关网页，并按维度整理</small></span>
+                    <input id="ag-ai-filter" type="checkbox">
+                </label>
+                <label class="ag-field ag-span2">
+                    <span>整理模式</span>
+                    <select id="ag-filter-mode">
+                        <option value="focus">只留与关键词直接相关的对象（推荐）</option>
+                        <option value="perKeyword">按关键词逐条整理成角色卡（身份/外貌/性格/能力/背景…）</option>
+                        <option value="allEntities">原版原预设：出现的所有实体都建条目</option>
+                    </select>
+                </label>
+                <div class="ag-note">
+                    「原版」会把配音员、关联作品、其他角色、普通术语都收成条目（这是原预设的原始行为）；
+                    想只要目标对象的资料就选前两项。逐条模式会把每个关键词整理成一张角色卡。
+                </div>
+                <label class="ag-row">
+                    <span><strong>启用内容过滤</strong><small>送入分析模型前裁剪标签内容</small></span>
+                    <input id="ag-enable-content-filter" type="checkbox">
+                </label>
+                <div class="ag-grid">
+                    <label class="ag-field">
+                        <span>只保留（开始标签，每行一个）</span>
+                        <textarea id="ag-include-starts" rows="3" placeholder="&lt;content&gt;"></textarea>
+                    </label>
+                    <label class="ag-field">
+                        <span>只保留（结束标签，每行一个）</span>
+                        <textarea id="ag-include-ends" rows="3" placeholder="&lt;/content&gt;"></textarea>
+                    </label>
+                    <label class="ag-field">
+                        <span>剔除（开始标签，每行一个）</span>
+                        <textarea id="ag-exclude-starts" rows="3" placeholder="&lt;think_fox~&gt;"></textarea>
+                    </label>
+                    <label class="ag-field">
+                        <span>剔除（结束标签，每行一个）</span>
+                        <textarea id="ag-exclude-ends" rows="3" placeholder="&lt;/think_fox~&gt;"></textarea>
+                    </label>
+                </div>
+            </div>
+
+            <!-- ============ 结果去向 ============ -->
+            <div class="ag-section">
+                <div class="ag-section-title">📦 结果去向</div>
+                <label class="ag-row">
+                    <span><strong>插入到当前提示词</strong><small>本轮生成时以 &lt;SearchResults&gt; 注入</small></span>
+                    <input id="ag-inject-current" type="checkbox">
+                </label>
+                <label class="ag-row">
+                    <span><strong>保存到Agent 搜索资料库（推荐）</strong><small>默认存酒馆服务器，电脑/手机浏览器共用一份</small></span>
+                    <input id="ag-save-local" type="checkbox">
+                </label>
+                <div class="ag-grid">
+                    <label class="ag-field">
+                        <span>资料库存储位置</span>
+                        <select id="ag-library-storage">
+                            <option value="server">酒馆服务器（世界书，跨设备共用）</option>
+                            <option value="local">仅本浏览器 localStorage</option>
+                        </select>
+                    </label>
+                    <label class="ag-field">
+                        <span>绑定世界书（写进这本）</span>
+                        <select id="ag-library-world-name"></select>
+                    </label>
+                    <label class="ag-field ag-span2">
+                        <span>世界书里没有想要的？先建一本</span>
+                        <input id="ag-library-world-new" type="text" placeholder="新世界书名字，例如：Agent 搜索资料库">
+                    </label>
+                </div>
+                <div class="ag-buttons">
+                    <button id="ag-library-world-refresh" class="menu_button">🔄 刷新世界书列表</button>
+                    <button id="ag-library-world-create" class="menu_button">➕ 新建并绑定</button>
+                </div>
+                <label class="ag-field ag-span2">
+                    <span>资料库注入方式</span>
+                    <select id="ag-library-inject">
+                        <option value="worldbook">交给世界书（推荐：靠绿灯/激活关键词，酒馆自己注入）</option>
+                        <option value="plugin">插件再注入一次（&lt;SearchResults&gt;，会与世界书重复）</option>
+                    </select>
+                </label>
+                <div class="ag-note">
+                    每个词条都是一条真正的世界书条目：🔵 蓝灯=常驻注入、🟢 绿灯=按激活关键词触发、⚪ 关灯=禁用不注入。
+                    选「交给世界书」后，记得在角色卡/聊天里绑定这本世界书（否则酒馆不会扫它）。
+                </div>
+                <label class="ag-row ag-danger">
+                    <span><strong>写入角色卡 personality</strong><small>会修改角色卡文件，慎用</small></span>
+                    <input id="ag-save-personality" type="checkbox">
+                </label>
+                <div class="ag-buttons">
+                    <button id="ag-open-library" class="menu_button">📚 打开资料库</button>
+                    <button id="ag-reload-library" class="menu_button">🔄 重载资料库</button>
+                    <button id="ag-reload-settings" class="menu_button">🔄 重载设置</button>
+                    <button id="ag-clear-injection" class="menu_button">清空待注入</button>
+                    <button id="ag-strip-personality" class="menu_button">清角色卡注入</button>
+                    <button id="ag-clear-local" class="menu_button">清空资料库</button>
+                </div>
+                <label class="ag-field ag-span2">
+                    <span>注入块 head（暴露给提示词编辑器，等同原预设的 <code>agent_search</code> 槽）</span>
+                    <textarea id="ag-inject-head" rows="2"></textarea>
+                </label>
+                <label class="ag-field ag-span2">
+                    <span>注入块 tail</span>
+                    <textarea id="ag-inject-tail" rows="2"></textarea>
+                </label>
+            </div>
+
+            <!-- ============ 自动搜索 ============ -->
+            <div class="ag-section">
+                <div class="ag-section-title">⏱️ 自动搜索</div>
+                <label class="ag-field">
+                    <span>模式</span>
+                    <select id="ag-auto-mode">
+                        <option value="manual">手动（只点按钮 / 斜杠命令）</option>
+                        <option value="auto">每次发送消息时搜索</option>
+                        <option value="interval">每隔 N 次发送搜索</option>
+                    </select>
+                </label>
+                <div class="ag-grid">
+                    <label class="ag-field">
+                        <span>间隔（次）</span>
+                        <input id="ag-auto-interval" type="number" min="1">
+                    </label>
+                    <label class="ag-field">
+                        <span>&nbsp;</span>
+                        <span class="ag-inline-check"><input id="ag-send-analyze" type="checkbox"> 发送时先分析</span>
+                    </label>
+                    <label class="ag-field">
+                        <span>&nbsp;</span>
+                        <span class="ag-inline-check"><input id="ag-background-silent" type="checkbox"> 后台静默（不弹提示）</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- ============ 分析模型 ============ -->
+            <div class="ag-section">
+                <div class="ag-section-title">🤖 分析模型（关键词提取 / 筛选 / 整理）</div>
+                <label class="ag-field">
+                    <span>使用哪个连接</span>
+                    <select id="ag-analysis-api">
+                        <option value="current">酒馆当前连接（静默生成）</option>
+                        <option value="custom">自定义 OpenAI 兼容 API</option>
+                    </select>
+                </label>
+                <div class="ag-grid">
+                    <label class="ag-field ag-span2">
+                        <span>② 分析模型 API 地址（只用于提取关键词 / 过滤整理，与搜索无关）</span>
+                        <input id="ag-custom-api-url" type="text" placeholder="https://api.example.com/v1/chat/completions">
+                    </label>
+                    <label class="ag-field">
+                        <span>API Key</span>
+                        <input id="ag-custom-api-key" type="password" autocomplete="off">
+                    </label>
+                    <label class="ag-field">
+                        <span>模型名（拉取后可直接点选）</span>
+                        <input id="ag-custom-model" type="text" list="ag-model-list" placeholder="deepseek/deepseek-v4.1-flash">
+                        <datalist id="ag-model-list"></datalist>
+                    </label>
+                    <label class="ag-field">
+                        <span>输出上限 max_tokens（默认 16384；推理模型思考很长，给少了正文会空。可直接填 32768）</span>
+                        <input id="ag-custom-max-tokens" type="number" min="1">
+                    </label>
+                    <label class="ag-field">
+                        <span>推理强度 reasoning_effort（治「思考吃光额度、正文为空」）</span>
+                        <select id="ag-reasoning-effort">
+                            <option value="">不干预</option>
+                            <option value="none">none（不让它思考，最快最稳）</option>
+                            <option value="low">low</option>
+                            <option value="medium">medium</option>
+                            <option value="high">high</option>
+                        </select>
+                    </label>
+                    <div class="ag-note">
+                        如果经常看到「finish_reason=length、正文 0 字符、思考几千字」，就是模型把输出额度花在思考上了：
+                        把 max_tokens 调到 32768，或把 reasoning_effort 设为 <code>none</code>（中转站支持才行）。
+                    </div>
+                    <label class="ag-field">
+                        <span>温度 temperature</span>
+                        <input id="ag-custom-temperature" type="number" step="0.1">
+                    </label>
+                </div>
+                <div class="ag-buttons">
+                    <button id="ag-fetch-models" class="menu_button">🔄 拉取模型列表</button>
+                    <button id="ag-clear-models" class="menu_button">清空列表</button>
+                </div>
+                <div id="ag-model-status" class="ag-note"></div>
+                <div id="ag-model-chips" class="ag-model-chips"></div>
+                <label class="ag-field ag-span2">
+                    <span>发送给分析模型的字符上限（0=不限；超限自动裁剪并逐级重试）</span>
+                    <input id="ag-analysis-max-chars" type="number" min="0">
+                </label>
+                <label class="ag-field ag-span2">
+                    <span>用户偏好 / 额外上下文（会拼进分析上下文）</span>
+                    <textarea id="ag-user-preference" rows="3" placeholder="例如：只关心人物设定与世界观，忽略同人二创。"></textarea>
+                </label>
+            </div>
+
+            <!-- ============ 配置管理 ============ -->
+            <div class="ag-section">
+                <div class="ag-section-title">🧰 配置管理</div>
+                <div class="ag-buttons">
+                    <button id="ag-import-husou" class="menu_button">导入原预设配置</button>
+                    <button id="ag-export-config" class="menu_button">导出配置</button>
+                    <label class="menu_button ag-import-label">
+                        导入配置
+                        <input id="ag-import-file" type="file" accept="application/json" hidden>
+                    </label>
+                    <button id="ag-reset-config" class="menu_button">恢复默认</button>
+                    <button id="ag-self-check" class="menu_button">连通性自检</button>
+                    <button id="ag-show-diag" class="menu_button">诊断日志</button>
+                </div>
+                <label class="ag-row">
+                    <span><strong>调试日志</strong><small>打开后Agent 搜索会把诊断写进控制台</small></span>
+                    <input id="ag-debug-log" type="checkbox">
+                </label>
+            </div>
+        </div>
+    </div>
+</div>

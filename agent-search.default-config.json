@@ -1,0 +1,98 @@
+{
+  "module": "agent-search",
+  "version": "1.1.0",
+  "extractedFrom": {
+    "preset": "[主预设] V19.7.3 狐神抚 · 毓忻.json",
+    "path": "extensions.tavern_helper.scripts[1] (🦊原预设・狐神撫, 4,850,787 chars)",
+    "originalConstants": {
+      "settingsObject": "const w = { ... }  (≈ offset 51,180)",
+      "storageKey": "f.HUSOU_STORAGE_KEY = \"websearch_settings\"",
+      "localLibraryKey": "SPreset_HusouLocal_<encodeURIComponent(charId)>"
+    }
+  },
+  "notes": [
+    "原 husouSettings 的 27 个字段名与默认值逐字保留，可直接导入 localStorage[\"websearch_settings\"]。",
+    "searchApiUrl 原始默认值是 localhost:8888；本机 SearXNG（教程 1.4）用 18080。",
+    "本插件新增项：foxSearchHead/foxSearchTail/contextFloors/jinaMaxUrlsPerKeyword/jinaMinTextLength/analysisMaxInputChars/libraryStorage/libraryWorldName/debugLog/userPreferenceText。",
+    "资料库默认存到酒馆服务器的世界书文件（跨设备共用）；libraryStorage 可改回 local 只存本浏览器。"
+  ],
+  "settings": {
+    "enableAutoSearch": false,
+    "autoMode": "manual",
+    "autoInterval": 5,
+    "backgroundSilent": false,
+    "sendAnalyze": false,
+    "enableMoegirl": false,
+    "enableWikipedia": false,
+    "enableCustomSearch": true,
+    "enableJinaFetch": true,
+    "enableJinaPrefilter": true,
+    "enableContentFilter": true,
+    "includeTagPairs": [],
+    "excludeTagPairs": [
+      {
+        "start": "<stage_2_pre_output_check>",
+        "end": "</stage_2_pre_output_check>"
+      },
+      {
+        "start": "<stage_1_base_requirements>",
+        "end": "</stage_1_base_requirements>"
+      },
+      {
+        "start": "<think_fox~>",
+        "end": "</think_fox~>"
+      }
+    ],
+    "includeTagStarts": "",
+    "includeTagEnds": "",
+    "excludeTagStarts": "<stage_2_pre_output_check>\n<stage_1_base_requirements>\n<think_fox~>\n",
+    "excludeTagEnds": "</stage_2_pre_output_check>\n</stage_1_base_requirements>\n</think_fox~>",
+    "smartSkip": true,
+    "aiFilter": true,
+    "saveToPersonality": false,
+    "saveToHusouLocal": true,
+    "injectCurrentPrompt": true,
+    "analysisApi": "current",
+    "customApiUrl": "",
+    "customApiKey": "",
+    "customModel": "",
+    "customMaxTokens": 4096,
+    "customTemperature": 1,
+    "customFrequencyPenalty": 0,
+    "customPresencePenalty": 0,
+    "customTopP": 1,
+    "customTopK": 0,
+    "customExtraBodyParamsYaml": "",
+    "customExcludeBodyParamsYaml": "",
+    "customExtraHeadersYaml": "",
+    "searchPresetMode": "builtin",
+    "searchPresetName": "",
+    "searchApiUrl": "http://localhost:8888/search?q={keyword}&format=json&language={language}",
+    "searchApiMethod": "GET",
+    "searchApiKey": "",
+    "searchApiKeyHeaderName": "Authorization",
+    "searchApiKeyHeaderTemplate": "Bearer {key}",
+    "searchApiQueryParam": "",
+    "searchApiBodyTemplate": "",
+    "searchApiResultPath": "results",
+    "searchApiTitleField": "title",
+    "searchApiSnippetField": "content",
+    "searchApiLinkField": "url",
+    "searchApiLanguage": "zh-CN",
+    "searchApiExtraParams": "",
+    "maxKeywords": 0,
+    "searchTimeout": 20000,
+    "maxExtractLength": 0,
+    "searchResultsCount": 10,
+    "jinaPageTimeout": 20000,
+    "foxSearchHead": "【Agent 搜索注入】以下信息是通过网页搜索后得到的信息",
+    "foxSearchTail": "以上内容只是通过搜索得来！具体信息以上下文中的角色信息描述为准！\n如果没有内容，跳过即可。",
+    "contextFloors": 12,
+    "jinaMaxUrlsPerKeyword": 3,
+    "jinaMinTextLength": 200,
+    "analysisMaxInputChars": 12000,
+    "libraryStorage": "server",
+    "libraryWorldName": "Agent 搜索资料库",
+    "debugLog": false
+  }
+}
