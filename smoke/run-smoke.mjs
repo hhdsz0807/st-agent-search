@@ -635,6 +635,10 @@ console.log('\n【链路 G5】reader 模式：前 3 个网址交给 AI');
     check('提示词里带上了抓到的正文', prompt5.includes('空间移动'), '正文未进入提示词');
     check('提示词要求按角色卡字段整理', prompt5.includes('**身份**') && prompt5.includes('**扮演要点**'));
     check('结果是按关键词命名的角色档案', last5?.filteredMap?.has('白井黑子') === true, JSON.stringify([...(last5?.filteredMap || new Map()).keys()]));
+    {
+        const body = String([...(last5?.filteredMap?.values() || [])][0] || '');
+        check('整理结果里不含「资料来源」/网址（不写进世界书）', !body.includes('资料来源') && !/https?:\/\//.test(body), body.slice(-120));
+    }
 
     globalThis.fetch = savedFetch5;
 }

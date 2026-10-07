@@ -565,8 +565,8 @@ test('entriesToWorldData 生成带关键词与绿灯的世界书条目', () => {
 
 test('worldDataToEntries 往返一致（含灯与关键词）', () => {
     const entries = [
-        { name: '白井黑子', content: 'A', keywords: ['白井黑子'], constant: true, disabled: false, ts: '2026-02-20' },
-        { name: '御坂美琴', content: 'B', keywords: ['御坂美琴', '美琴'], constant: false, disabled: true, ts: '2026-02-21' },
+        { name: '白井黑子', content: 'A', keywords: ['白井黑子'], constant: true, disabled: false, ts: '2026-02-20', sources: [] },
+        { name: '御坂美琴', content: 'B', keywords: ['御坂美琴', '美琴'], constant: false, disabled: true, ts: '2026-02-21', sources: [] },
     ];
     const back = core.worldDataToEntries(core.entriesToWorldData('X', entries));
     assert.deepEqual(back, entries);
@@ -743,7 +743,7 @@ test('sanitizeProfileOutput 组合清洗：思考 + 前提废话都清掉', () =
     assert.ok(out.startsWith('**身份**'));
     assert.ok(!out.includes('先想想'));
     assert.ok(!out.includes('以下是资料'));
-    assert.ok(out.includes('资料来源'));
+    assert.ok(!out.includes('资料来源')); // 来源字段会被剥离，不写进正文
 });
 
 test('sanitizeProfileOutput 支持字数上限', () => {
@@ -789,6 +789,45 @@ test('rankAndFilterUrls 百科站优先，且同站只留一条', () => {
 test('rankAndFilterUrls 非 http(s) 或空列表安全返回', () => {
     assert.deepEqual(core.rankAndFilterUrls([], { max: 3 }), []);
     assert.deepEqual(core.rankAndFilterUrls([{ url: 'ftp://x' }, { url: '' }], { max: 3 }), []);
+});
+
+/* ---------------- 来源不进正文 ---------------- */
+console.log('\n来源不进正文（只做元数据）');
+
+test('stripSourceSection 去掉「资料来源」字段块', () => {
+    const raw = '**身份**：风纪委员\n**外貌**：双马尾\n**资料来源**：\n- https://a.example/1\n- https://b.example/2';
+    const out = core.stripSourceSection(raw);
+    assert.ok(out.includes('**身份**'));
+    assert.ok(!out.includes('资料来源'));
+    assert.ok(!out.includes('http'));
+});
+
+test('sanitizeProfileOutput 清掉正文里的裸网址', () => {
+    const raw = '**身份**：x\n**外貌**：y\n\nhttps://c.example/3\n[来源](https://d.example/4)\n';
+    const out = core.sanitizeProfileOutput(raw);
+    assert.ok(!out.includes('http'), out);
+    assert.ok(out.includes('**外貌**'));
+});
+
+test('来源可存进词条元数据并往返（不污染正文）', () => {
+    const entries = [core.makeEntry({
+        name: '白井黑子',
+        content: '**身份**：风纪委员',
+        keywords: ['白井黑子'],
+        sources: [{ site: '萌娘百科', title: '白井黑子', url: 'https://zh.moegirl.org.cn/x' }],
+    })];
+    const world = core.entriesToWorldData('测试', entries);
+    assert.equal(world.entries[0].content.includes('http'), false);
+    assert.equal(world.entries[0].extensions.agent_search.sources.length, 1);
+    const back = core.worldDataToEntries(world);
+    assert.equal(back[0].sources[0].url, 'https://zh.moegirl.org.cn/x');
+    assert.ok(!back[0].content.includes('http'));
+});
+
+test('整理提示词不再要求输出资料来源', () => {
+    const { system } = core.buildReaderPrompt({ keyword: '白井黑子', sources: [{ site: 'x', url: 'https://x/1', text: 'y' }] });
+    assert.ok(system.includes('绝对不要输出'));
+    assert.ok(!system.includes('**资料来源**'));
 });
 
 console.log(`\n结果：${passed} 通过 / ${failed} 失败`);

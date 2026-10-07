@@ -256,6 +256,7 @@ const state = {
     pendingKeywords: [],
     sendCount: 0,
     diagnostics: [],
+    lastSources: null, // 上次搜索每个关键词的来源网址（只存进词条元数据）
     searchTiming: null, // 各阶段耗时（排查"为什么这么慢"）
 };
 
@@ -920,6 +921,8 @@ async function searchByReader(keyword, signal) {
     // 剥掉思考内容，只保留从第一个字段开始的正式档案（思考不该进世界书）
     const content = core.sanitizeProfileOutput(core.cleanProviderText(String(response).trim(), 0), 0);
     const entries = new Map([[keyword, content]]);
+    // 来源只作为词条元数据保存（资料库里可见，不进正文、不注入扮演）
+    const sources = withText.filter((s) => String(s.text || '').trim()).map((s) => ({ site: s.site, title: s.title || '', url: s.url }));
     const details = withText.map((s) => ({
         source: s.site,
         keyword,
@@ -927,8 +930,8 @@ async function searchByReader(keyword, signal) {
         error: s.text ? undefined : { code: 'READER_FAILED', message: s.error || '未读取' },
         url: s.url,
     }));
-    diag('reader:完成', { keyword, chars: content.length, pages: withText.filter((s) => s.text).length });
-    return { entries, details };
+    diag('reader:完成', { keyword, chars: content.length, pages: sources.length });
+    return { entries, details, sources };
 }
 async function runAllSources(keywords, signal) {
     const settings = getSettings();
@@ -1247,12 +1250,15 @@ async function executeSearch(options = {}) {
             // 再用阅读器读整页，最后交给模型整理成角色档案 —— 插件不再自己截断取正文。
             rawMap = new Map();
             const allDetails = [];
+            const sourcesByKeyword = {};
             for (const kw of keywords) {
                 if (signal.aborted) throw makeError('ABORTED', '已取消');
                 const one = await searchByReader(kw, signal);
                 for (const [k, v] of one.entries) rawMap.set(k, v);
+                if (one.sources?.length) sourcesByKeyword[kw] = one.sources;
                 allDetails.push(...one.details);
             }
+            state.lastSources = sourcesByKeyword;
             rawMap._summary = {
                 taskCount: allDetails.length,
                 successCount: allDetails.filter((d) => d.status === 'success').length,
@@ -1700,6 +1706,11 @@ function renderLibrary() {
                 </div>
                 <label class="ag-field"><span>详情正文（点进来看到的内容）</span>
                     <textarea class="ag-entry-content" data-index="${i}" rows="8">${escapeHtml(e.content)}</textarea></label>
+                ${(e.sources || []).length
+                    ? `<div class="ag-entry-sources"><span>来源（只记录，不写入正文、不注入扮演）：</span>${(e.sources || [])
+                          .map((s) => `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.site || s.url)}</a>`)
+                          .join(' · ')}</div>`
+                    : ''}
             </div>` : ''}
         </div>`;
         })
@@ -1904,7 +1915,11 @@ async function saveResults(filteredMap, keywords) {
     if (settings.saveToHusouLocal) {
         try {
             // 词条化：每个整理出来的对象一个词条；同名则**更新**（不重复堆叠）
-            const incoming = core.knowledgeMapToEntries(filteredMap, { constant: false });
+            const sourcesByKeyword = state.lastSources || {};
+            const incoming = core.knowledgeMapToEntries(filteredMap, { constant: false }).map((e) => ({
+                ...e,
+                sources: sourcesByKeyword[e.name] || (state.lastResult?.keywords?.includes(e.name) ? state.lastSources?.[e.name] : undefined) || [],
+            }));
             const merged = [...libraryCache.entries];
             for (const entry of incoming) {
                 const idx = merged.findIndex((e) => e.name === entry.name);

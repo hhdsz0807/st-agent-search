@@ -771,3 +771,16 @@
     opacity: 0.5;
     pointer-events: none;
 }
+
+/* 词条来源（只记录不注入）：小字 + 可点链接 */
+.ag-entry-sources {
+    font-size: 11.5px;
+    opacity: 0.85;
+    line-height: 1.6;
+    word-break: break-all;
+}
+
+.ag-entry-sources a {
+    color: var(--SmartThemeQuoteColor, #f0a070);
+    text-decoration: underline;
+}

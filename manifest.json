@@ -6,7 +6,7 @@
   "js": "index.js",
   "css": "style.css",
   "author": "hhdsz0807",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "homePage": "https://github.com/hhdsz0807/st-agent-search",
   "auto_update": true,
   "minimum_client_version": "1.12.0"

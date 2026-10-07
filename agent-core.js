@@ -15,7 +15,7 @@
  * 本文件不 import 任何 SillyTavern 模块，可被 node 直接测试（见 test-ag-core.mjs）。
  */
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.0.1';
 
 /* ============================================================================
  * 1. 默认配置（逐字提取，键名与原脚本保持一致）
@@ -1091,6 +1091,7 @@ export function makeEntry(partial = {}) {
         constant: !!partial.constant,
         disabled: !!partial.disabled,
         ts: String(partial.ts || ''),
+        sources: Array.isArray(partial.sources) ? partial.sources.map((s) => ({ site: String(s?.site || ''), title: String(s?.title || ''), url: String(s?.url || '') })).filter((s) => s.url) : [],
     };
 }
 
@@ -1112,7 +1113,7 @@ export function entriesToWorldData(worldName, entries) {
             disable: entry.disabled,
             displayIndex: i,
             addMemo: true,
-            extensions: { agent_search: { ts: entry.ts || '', index: i, name: entry.name || '' } },
+            extensions: { agent_search: { ts: entry.ts || '', index: i, name: entry.name || '', sources: JSON.parse(JSON.stringify(entry.sources || [])) } },
         };
     });
     return {
@@ -1139,6 +1140,7 @@ export function worldDataToEntries(worldData) {
             constant: !!e.constant,
             disabled: !!e.disable,
             ts: String(e?.extensions?.agent_search?.ts || ''),
+            sources: Array.isArray(e?.extensions?.agent_search?.sources) ? e.extensions.agent_search.sources : [],
         }));
 }
 
@@ -1324,7 +1326,7 @@ export function buildReaderPrompt({ keyword, sources = [] } = {}) {
         .join('\n');
 
     return {
-        system: `你是角色资料整理师，专门为**角色扮演**准备人物资料。\n你会拿到以下资料：\n1) 目标对象在各百科站点的网址（部分站点正文已随提示词附上）；\n2) 已抓取的网页正文（维基百科 / 萌娘百科）。\n\n你的任务：把资料整理成**能直接用于扮演这个角色**的人物档案。\n\n【硬性要求】\n- **不要长篇推理**：直接输出下面的字段，思考尽量短（否则会因输出长度被截断）。\n- 只整理与「${kw}」这**同一个对象**有关的信息；其他角色/作品/声优/无关概念一律不要单独成条。\n- 不要复述网页排版、导航、脚注、参考文献、外部链接。\n- 信息不足的字段写「（资料未提及）」，不要编造；不确定的标注「（存疑）」。\n- 全文用简体中文。\n\n【输出格式】\n只输出下面这些字段，每行一个，格式为「**字段名**：内容」：\n**身份**：\n**外貌**：\n**性格**：\n**能力**：\n**背景**：\n**人际关系**：\n**语言风格**：\n**扮演要点**：\n**资料来源**：（列出用到的网址，一行一个）`,
+        system: `你是角色资料整理师，专门为**角色扮演**准备人物资料。\n你会拿到以下资料：\n1) 目标对象在各百科站点的网址（部分站点正文已随提示词附上）；\n2) 已抓取的网页正文（维基百科 / 萌娘百科）。\n\n你的任务：把资料整理成**能直接用于扮演这个角色**的人物档案。\n\n【硬性要求】\n- **不要长篇推理**：直接输出下面的字段，思考尽量短（否则会因输出长度被截断）。\n- 只整理与「${kw}」这**同一个对象**有关的信息；其他角色/作品/声优/无关概念一律不要单独成条。\n- 不要复述网页排版、导航、脚注、参考文献、外部链接。\n- 信息不足的字段写「（资料未提及）」，不要编造；不确定的标注「（存疑）」。\n- 全文用简体中文。\n\n【输出格式】\n只输出下面这些字段，每行一个，格式为「**字段名**：内容」：\n**身份**：\n**外貌**：\n**性格**：\n**能力**：\n**背景**：\n**人际关系**：\n**语言风格**：\n**扮演要点**：\n\n【绝对不要输出】\n- 不要「资料来源 / 参考链接 / 网址」这类字段；\n- 正文里不要出现任何 URL、站点名单或「见 xxx 页面」的字样 —— 网址只供你自己阅读，不进档案。`,
         user: `【目标对象】${kw}\n\n【资料来源网址】\n${urlLines || '（无）'}\n${bodyBlocks ? `\n【已抓取的正文】${bodyBlocks}` : '\n【已抓取的正文】\n（本次没有取到正文；请仅依据上面的网址与你已知的常识整理，并在正文中标注「（未读取到原文，存疑）」）'}`,
     };
 }
@@ -1397,9 +1399,27 @@ export function trimToProfileFields(text) {
     return t.slice(m.index).trim();
 }
 
-/** 组合：剥离思考 → 截到字段起点 → 收敛空行 */
+/**
+ * 去掉「资料来源 / 参考链接」这类字段与任何裸网址行。
+ * 网址是给模型自己读的，不该被注入到扮演里（用户明确要求）。
+ */
+export function stripSourceSection(text) {
+    let t = String(text || '');
+    // 字段式的来源块：**资料来源**：… （一直到下一个字段或结尾）
+    t = t.replace(/\n*\*{0,2}\s*(?:资料)?(?:来源|参考来源|参考链接|引用来源|资料来源与链接)\s*\*{0,2}\s*[:：][\s\S]*?(?=\n\s*\*\*[\u4e00-\u9fa5A-Za-z]{2,8}\s*\*\*\s*[:：]|\s*$)/gi, '\n');
+    // 列表式的来源块：### 来源 / 【资料来源】 段落
+    t = t.replace(/\n*#{0,3}\s*(?:资料)?(?:来源|参考链接)\s*[:：]?\s*\n(?:[-*•\s]*https?:\/\/[^\s]+\s*\n?)+/gi, '\n');
+    t = t.replace(/\n*【\s*(?:资料来源|参考链接|来源)\s*】[\s\S]*?(?=\n\n|$)/g, '\n');
+    // 任何单独的裸网址行（含 markdown 链接式）
+    t = t.replace(/^\s*[-*•\d.、]*\s*(?:🔗\s*)?<?https?:\/\/[^\s>]+\s*>?\s*$/gim, '');
+    t = t.replace(/^\s*\[[^\]]{0,40}\]\(https?:\/\/[^)]+\)\s*$/gim, '');
+    return t;
+}
+
+/** 组合：剥离思考 → 去掉来源/网址 → 截到字段起点 → 收敛空行 */
 export function sanitizeProfileOutput(text, cap = 0) {
     let t = stripThinkingBlocks(text);
+    t = stripSourceSection(t);
     t = trimToProfileFields(t);
     t = t.replace(/\n{3,}/g, '\n\n').trim();
     const limit = Math.max(0, Number(cap) || 0);
