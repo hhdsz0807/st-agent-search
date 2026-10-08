@@ -90,8 +90,30 @@ export async function renderExtensionTemplateAsync() { return globalThis.__dshSe
 // —— 桩：public/scripts/world-info.js
 writeStub(
     'scripts/world-info.js',
-    `export async function getWorldInfoPrompt() {
+    `export const worldInfoCache = new Map();
+export const world_names = [];
+export async function getWorldInfoPrompt() {
     return { worldInfoString: globalThis.__dshWorldInfo || '', worldInfoBefore: globalThis.__dshWorldInfo || '', worldInfoAfter: '' };
+}
+export async function saveWorldInfo(name, data, immediately) {
+    globalThis.__dshWorldCalls = globalThis.__dshWorldCalls || [];
+    globalThis.__dshWorldCalls.push({ fn: 'saveWorldInfo', name, immediately: !!immediately, entries: Object.keys(data?.entries || {}).length });
+    worldInfoCache.set(name, data);
+    const res = await globalThis.fetch('/api/worldinfo/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, data }),
+    });
+    return res;
+}
+export async function loadWorldInfo(name) {
+    globalThis.__dshWorldCalls = globalThis.__dshWorldCalls || [];
+    globalThis.__dshWorldCalls.push({ fn: 'loadWorldInfo', name });
+    return worldInfoCache.get(name);
+}
+export async function updateWorldInfoList() {
+    globalThis.__dshWorldCalls = globalThis.__dshWorldCalls || [];
+    globalThis.__dshWorldCalls.push({ fn: 'updateWorldInfoList' });
 }
 `,
 );
@@ -826,6 +848,12 @@ fakeServer.calls.length = 0;
 const okH = await api.search('原神 可莉');
 check('勾选保存后搜索成功', okH === true);
 check('调用了 /api/worldinfo/edit（写服务端）', fakeServer.calls.some((u) => u.includes('/api/worldinfo/edit')));
+{
+    const calls = globalThis.__dshWorldCalls || [];
+    check('走的是酒馆自己的 saveWorldInfo（会同步前端缓存）', calls.some((c) => c.fn === 'saveWorldInfo' && c.immediately === true), JSON.stringify(calls));
+    check('写完后刷新了世界书列表（无需刷新浏览器）', calls.some((c) => c.fn === 'updateWorldInfoList'), JSON.stringify(calls.map((c) => c.fn)));
+    check('写完后重载了该书缓存', calls.some((c) => c.fn === 'loadWorldInfo' && c.name === 'Agent 搜索资料库测试'), JSON.stringify(calls.map((c) => c.fn)));
+}
 check('服务端确实存下了世界书', fakeServer.worlds.has('Agent 搜索资料库测试'), JSON.stringify([...fakeServer.worlds.keys()]));
 const storedWorld = fakeServer.worlds.get('Agent 搜索资料库测试');
 if (!storedWorld) { check('资料库链路前置条件（搜索源可用）', false, 'storedWorld 为空，说明前面把搜索源关了'); }

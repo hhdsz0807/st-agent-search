@@ -1436,11 +1436,43 @@ async function loadLibraryFromServer() {
     return { exists: true, entries: core.worldDataToEntries(data), worlds };
 }
 
+/**
+ * 刷新 ST 前端的世界书状态：下拉列表 + 内存缓存 + 广播事件。
+ * 「搜完必须刷新浏览器才能在世界书面板看到」的根因就在这里 ——
+ * 直接写服务器文件时,前端手里的 world_names 与 worldInfoCache 都还是旧的。
+ */
+async function refreshWorldInfoUi(name) {
+    try {
+        if (stWorldInfo.worldInfoCache?.delete) stWorldInfo.worldInfoCache.delete(name);
+    } catch { /* ignore */ }
+    try {
+        if (typeof stWorldInfo.loadWorldInfo === 'function') await stWorldInfo.loadWorldInfo(name);
+    } catch (err) {
+        diag('世界书:重载缓存失败', { world: name, error: errorInfo(err) }, 'warn');
+    }
+    try {
+        // 新建的世界书要出现在「世界书」下拉里,靠这个
+        if (typeof stWorldInfo.updateWorldInfoList === 'function') await stWorldInfo.updateWorldInfoList();
+    } catch (err) {
+        diag('世界书:刷新列表失败', { world: name, error: errorInfo(err) }, 'warn');
+    }
+    try {
+        bus()?.emit?.(eventTypes().WORLDINFO_UPDATED, name);
+    } catch { /* ignore */ }
+}
+
 /** 写回绑定的世界书（真·世界书条目：带关键词与绿灯/关灯） */
 async function saveLibraryToServer(entries) {
     const name = libraryWorldName();
     const data = core.entriesToWorldData(name, entries);
-    await stPost('/api/worldinfo/edit', { name, data });
+    // 优先用酒馆自己的 saveWorldInfo：写服务器 + 更新前端缓存 + 广播 WORLDINFO_UPDATED 一步到位，
+    // 世界书面板立刻能看到，不用刷新浏览器。
+    if (typeof stWorldInfo.saveWorldInfo === 'function') {
+        await stWorldInfo.saveWorldInfo(name, data, true);
+    } else {
+        await stPost('/api/worldinfo/edit', { name, data });
+    }
+    await refreshWorldInfoUi(name);
     return data;
 }
 
@@ -3316,15 +3348,9 @@ function bindPanelButtons() {
 
     onClick('#ag-clear-local', async () => {
         if (!confirm('确定清空资料库？服务器世界书里的条目也会一起删掉，不可恢复。')) return;
+        // persistLibrary([]) 已经走 saveWorldInfo + 刷新前端，不需要再直写一次
         const res = await persistLibrary([]);
-        if (res.saved === 'server') {
-            try {
-                await stPost('/api/worldinfo/edit', { name: libraryWorldName(), data: core.blocksToWorldData(libraryWorldName(), []) });
-            } catch (err) {
-                diag('资料库:清空世界书失败', { error: errorInfo(err) }, 'error');
-            }
-        }
-        toast('🦊 已清空资料库', 'success');
+        toast(res.saved === 'server' ? `🔎 已清空世界书「${libraryWorldName()}」` : '🔎 已清空本浏览器资料库', 'success');
     });
 
     onClick('#ag-clear-injection', () => {

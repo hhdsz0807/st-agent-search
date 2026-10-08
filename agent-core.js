@@ -15,7 +15,7 @@
  * 本文件不 import 任何 SillyTavern 模块，可被 node 直接测试（见 test-ag-core.mjs）。
  */
 
-export const VERSION = '1.0.2';
+export const VERSION = '1.0.3';
 
 /* ============================================================================
  * 1. 默认配置（逐字提取，键名与原脚本保持一致）
