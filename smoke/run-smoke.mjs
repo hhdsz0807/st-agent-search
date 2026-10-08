@@ -623,8 +623,12 @@ console.log('\n【链路 G5】reader 模式：前 3 个网址交给 AI');
         jinaConcurrency: 3,
     });
     globalThis.__dshGenerateCalls.length = 0;
-    globalThis.__dshGenerateQueue.push('**身份**：风纪委员\n**外貌**：双马尾\n**性格**：认真\n**能力**：空间移动\n**背景**：常盘台中学\n**人际关系**：爱慕御坂美琴\n**语言风格**：句尾加「ですの」\n**扮演要点**：风纪委员式认真\n**资料来源**：见上');
+    globalThis.__dshGenerateQueue.push('**身份**：风纪委员\n**外貌**：双马尾\n**性格**：认真\n**能力**：空间移动\n**背景**：常盘台中学\n**人际关系**：爱慕御坂美琴\n**语言风格**：句尾加「ですの」\n**扮演要点**：风纪委员式认真\n**激活关键词**：白井黑子、黑子、白井、风纪委员；\n**资料来源**：见上');
     const ok5 = await api.search('白井黑子');
+    const coreKw = () => {
+        const body = String([...(api.lastResult()?.filteredMap?.values() || [])][0] || '');
+        return api.core.mergeKeywords([], api.core.extractKeywordLine(body).keywords);
+    };
     const last5 = api.lastResult();
     const prompt5 = String(globalThis.__dshGenerateCalls[0]?.prompt || '');
 
@@ -635,6 +639,12 @@ console.log('\n【链路 G5】reader 模式：前 3 个网址交给 AI');
     check('提示词里带上了抓到的正文', prompt5.includes('空间移动'), '正文未进入提示词');
     check('提示词要求按角色卡字段整理', prompt5.includes('**身份**') && prompt5.includes('**扮演要点**'));
     check('结果是按关键词命名的角色档案', last5?.filteredMap?.has('白井黑子') === true, JSON.stringify([...(last5?.filteredMap || new Map()).keys()]));
+    {
+        const kwMap = api.lastKeywords() || {};
+        const entryKw = kwMap['白井黑子'] || [];
+        check('激活关键词已抽成多条（含别名）', entryKw.length >= 3, JSON.stringify(kwMap));
+        check('正文里不再留「激活关键词」那一行', !String([...(last5?.filteredMap?.values() || [])][0] || '').includes('激活关键词'));
+    }
     {
         const body = String([...(last5?.filteredMap?.values() || [])][0] || '');
         check('整理结果里不含「资料来源」/网址（不写进世界书）', !body.includes('资料来源') && !/https?:\/\//.test(body), body.slice(-120));

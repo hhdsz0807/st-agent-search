@@ -15,7 +15,7 @@
  * 本文件不 import 任何 SillyTavern 模块，可被 node 直接测试（见 test-ag-core.mjs）。
  */
 
-export const VERSION = '1.0.1';
+export const VERSION = '1.0.2';
 
 /* ============================================================================
  * 1. 默认配置（逐字提取，键名与原脚本保持一致）
@@ -1326,7 +1326,7 @@ export function buildReaderPrompt({ keyword, sources = [] } = {}) {
         .join('\n');
 
     return {
-        system: `你是角色资料整理师，专门为**角色扮演**准备人物资料。\n你会拿到以下资料：\n1) 目标对象在各百科站点的网址（部分站点正文已随提示词附上）；\n2) 已抓取的网页正文（维基百科 / 萌娘百科）。\n\n你的任务：把资料整理成**能直接用于扮演这个角色**的人物档案。\n\n【硬性要求】\n- **不要长篇推理**：直接输出下面的字段，思考尽量短（否则会因输出长度被截断）。\n- 只整理与「${kw}」这**同一个对象**有关的信息；其他角色/作品/声优/无关概念一律不要单独成条。\n- 不要复述网页排版、导航、脚注、参考文献、外部链接。\n- 信息不足的字段写「（资料未提及）」，不要编造；不确定的标注「（存疑）」。\n- 全文用简体中文。\n\n【输出格式】\n只输出下面这些字段，每行一个，格式为「**字段名**：内容」：\n**身份**：\n**外貌**：\n**性格**：\n**能力**：\n**背景**：\n**人际关系**：\n**语言风格**：\n**扮演要点**：\n\n【绝对不要输出】\n- 不要「资料来源 / 参考链接 / 网址」这类字段；\n- 正文里不要出现任何 URL、站点名单或「见 xxx 页面」的字样 —— 网址只供你自己阅读，不进档案。`,
+        system: `你是角色资料整理师，专门为**角色扮演**准备人物资料。\n你会拿到以下资料：\n1) 目标对象在各百科站点的网址（部分站点正文已随提示词附上）；\n2) 已抓取的网页正文（维基百科 / 萌娘百科）。\n\n你的任务：把资料整理成**能直接用于扮演这个角色**的人物档案。\n\n【硬性要求】\n- **不要长篇推理**：直接输出下面的字段，思考尽量短（否则会因输出长度被截断）。\n- 只整理与「${kw}」这**同一个对象**有关的信息；其他角色/作品/声优/无关概念一律不要单独成条。\n- 不要复述网页排版、导航、脚注、参考文献、外部链接。\n- 信息不足的字段写「（资料未提及）」，不要编造；不确定的标注「（存疑）」。\n- 全文用简体中文。\n\n【输出格式】\n只输出下面这些字段，每行一个，格式为「**字段名**：内容」：\n**身份**：\n**外貌**：\n**性格**：\n**能力**：\n**背景**：\n**人际关系**：\n**语言风格**：\n**扮演要点**：\n**激活关键词**：（把能触发这条档案的**所有叫法**都列出来：本名、别名、简称、昵称、外号、日文名/罗马字；用「、」分隔；只列词，不要解释）\n\n【绝对不要输出】\n- 不要「资料来源 / 参考链接 / 网址」这类字段（但**必须**保留上面那行「激活关键词」）；\n- 正文里不要出现任何 URL、站点名单或「见 xxx 页面」的字样 —— 网址只供你自己阅读，不进档案。`,
         user: `【目标对象】${kw}\n\n【资料来源网址】\n${urlLines || '（无）'}\n${bodyBlocks ? `\n【已抓取的正文】${bodyBlocks}` : '\n【已抓取的正文】\n（本次没有取到正文；请仅依据上面的网址与你已知的常识整理，并在正文中标注「（未读取到原文，存疑）」）'}`,
     };
 }
@@ -1487,4 +1487,100 @@ export function rankAndFilterUrls(items, options = {}) {
         if (kept.length >= Math.max(0, max)) break;
     }
     return kept;
+}
+/* ============================================================================
+ * 激活关键词（世界书的 key 数组）
+ *
+ * 用户反馈：只留搜索词一个关键词太弱 —— 「后藤一里」这条档案，
+ * 后藤独 / 小孤独 / 波奇酱 / 一里 / 后藤同学 都该能触发。
+ * 所以：让模型单独输出一行「**激活关键词**」，这一行**从正文里剥掉**、写进世界书 key；
+ * 模型漏了的话，再用本地规则从正文里挖别名。
+ * ==========================================================================*/
+
+/** 通用清理：去空白、去标点、去括号补充说明 */
+function normalizeKeywordToken(raw) {
+    return String(raw || '')
+        .replace(/[「」『』""'']/g, '')
+        .replace(/[（(][^）)]*[）)]/g, '')
+        // 括号/冒号前面的才是叫法本身：`后藤独（日语：…）` → `后藤独`
+        .split(/[（(【\[\]:：]/)[0]
+        .replace(/^[\s\-*•、,，.。:：]+|[\s\-*•、,，.。:：]+$/g, '')
+        .trim();
+}
+
+/** 合并多组关键词：去重、去空、去掉过长的（>16 字不太可能是叫法）、上限截断 */
+export function mergeKeywords(...lists) {
+    const out = [];
+    const seen = new Set();
+    for (const list of lists) {
+        const arr = Array.isArray(list) ? list : String(list || '').split(/[、,，;；|/\n]+/g);
+        for (const item of arr) {
+            const token = normalizeKeywordToken(item);
+            if (!token || token.length > 16) continue;
+            if (seen.has(token)) continue;
+            seen.add(token);
+            out.push(token);
+            if (out.length >= 16) return out;
+        }
+    }
+    return out;
+}
+
+/**
+ * 抽出「激活关键词」那一行，并从正文里删掉它（这一行给世界书用，不该出现在正文里）。
+ * 兼容 **激活关键词**：a、b / 激活关键词： / 关键词： / 别名： 等写法。
+ */
+export function extractKeywordLine(text) {
+    let t = String(text || '');
+    let keywords = [];
+    const lineRe = /^[ \t]*\*{0,2}\s*(?:激活关键词|触发关键词|关键词|别名关键词|别名|别称|又称)\s*\*{0,2}\s*[:：][ \t]*(.+)$/gim;
+    t = t.replace(lineRe, (_m, group) => {
+        const parts = String(group).split(/[、,，;；|\/]/g);
+        keywords = mergeKeywords(keywords, parts);
+        return '';
+    });
+    // 「别名：xx；又称：yy」这种嵌在正文句子里的也捞一下（但保留正文）
+    const inlineRe = /(?:别名|别称|又称|俗称|通称|昵称|爱称|外号)\s*[:：]?\s*([^\n。；;]{1,40})/g;
+    let m;
+    while ((m = inlineRe.exec(t)) !== null) {
+        keywords = mergeKeywords(keywords, String(m[1]).split(/[、,，;；|\/\s]+/g));
+    }
+    return { keywords, text: t.replace(/\n{3,}/g, '\n\n').trim() };
+}
+
+/**
+ * 本地兜底：从正文里挖可能的叫法（日文名、罗马字、引号里的昵称等）
+ */
+export function extractAliasKeywords(keyword, content) {
+    const kw = String(keyword || '').trim();
+    const text = String(content || '');
+    const found = [kw];
+
+    // （日语：後藤ひとり／ごとう ひとり，罗马化：Gotō Hitori）
+    const jpRe = /(?:日语|日文|原文)\s*[:：]\s*([^，,。；;）)]+)/g;
+    let m;
+    while ((m = jpRe.exec(text)) !== null) {
+        for (const part of String(m[1]).split(/[／/|]/g)) found.push(part);
+    }
+    const romajiRe = /罗马化\s*[:：]\s*([A-Za-zĀ-žōū\s.'-]{2,40})/g;
+    while ((m = romajiRe.exec(text)) !== null) found.push(m[1]);
+
+    // 简短昵称式别名（括号里 2~6 字，且不是解释性长句）
+    const nickRe = /[（(]\s*(?:别名|又称|俗称|昵称|爱称|外号)?\s*([^\s，,。；;）)]{2,6})\s*[）)]/g;
+    while ((m = nickRe.exec(text)) !== null) found.push(m[1]);
+
+    // 「别名：小孤独、波奇酱」「又称 小孤独」这类
+    const labelRe = /(?:别名|别称|又称|俗称|通称|昵称|爱称|外号|被称为|被人称作)\s*[:：]?\s*([^\n。；;]{1,40})/g;
+    while ((m = labelRe.exec(text)) !== null) {
+        found.push(...String(m[1]).split(/[、,，;；|\/\s]+/g));
+    }
+
+    // 含「称/叫/别名」的句子里，引号内的 2~6 字叫法
+    for (const line of text.split('\n')) {
+        if (!/(?:称|叫|别名|别称|昵称|俗称|爱称|外号)/.test(line)) continue;
+        const quoted = line.match(/[「『"]([^」』"]{2,6})[」』"]/g) || [];
+        for (const q of quoted) found.push(q.replace(/[「『"」』"]/g, ''));
+    }
+
+    return mergeKeywords(found);
 }

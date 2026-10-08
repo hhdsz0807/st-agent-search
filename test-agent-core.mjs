@@ -830,5 +830,35 @@ test('整理提示词不再要求输出资料来源', () => {
     assert.ok(!system.includes('**资料来源**'));
 });
 
+/* ---------------- 激活关键词 ---------------- */
+console.log('\n激活关键词（世界书 key）');
+
+test('extractKeywordLine 抽出别名并从正文删掉这一行', () => {
+    const raw = '**身份**：漫画《孤独摇滚！》女主角\n**激活关键词**：后藤一里、后藤独、小孤独、波奇酱、一里、后藤同学\n**外貌**：粉色头发';
+    const r = core.extractKeywordLine(raw);
+    assert.deepEqual(r.keywords, ['后藤一里', '后藤独', '小孤独', '波奇酱', '一里', '后藤同学']);
+    assert.ok(!r.text.includes('激活关键词'));
+    assert.ok(r.text.includes('**外貌**'));
+});
+
+test('mergeKeywords 去重、去空、限制长度与数量', () => {
+    const merged = core.mergeKeywords(['一里', ' 一里 '], ['后藤同学', ''], '波奇酱、波奇酱');
+    assert.deepEqual(merged, ['一里', '后藤同学', '波奇酱']);
+    assert.ok(core.mergeKeywords(['x'.repeat(30)]).length === 0);
+});
+
+test('extractAliasKeywords 从正文挖别名/昵称/日文名', () => {
+    const content = '后被乐队成员称为「小孤独」，粉丝常叫她「波奇酱」。别名：后藤独（日语：後藤ひとり／ごとう ひとり，罗马化：Gotō Hitori）';
+    const kw = core.extractAliasKeywords('后藤一里', content);
+    for (const need of ['后藤一里', '小孤独', '波奇酱', '后藤独']) assert.ok(kw.includes(need), `缺 ${need}: ${JSON.stringify(kw)}`);
+});
+
+test('整理提示词要求输出激活关键词，且禁止来源', () => {
+    const { system } = core.buildReaderPrompt({ keyword: '后藤一里', sources: [{ site: 'x', url: 'https://x/1', text: 'y' }] });
+    assert.ok(system.includes('**激活关键词**'));
+    assert.ok(system.includes('绝对不要输出'));
+    assert.ok(!system.includes('**资料来源**'));
+});
+
 console.log(`\n结果：${passed} 通过 / ${failed} 失败`);
 process.exit(failed ? 1 : 0);

@@ -257,6 +257,7 @@ const state = {
     sendCount: 0,
     diagnostics: [],
     lastSources: null, // 上次搜索每个关键词的来源网址（只存进词条元数据）
+    lastKeywordsByKw: null, // 每个关键词的激活关键词列表（写进世界书 key）
     searchTiming: null, // 各阶段耗时（排查"为什么这么慢"）
 };
 
@@ -886,6 +887,7 @@ async function readSourcesWithReader(sources, signal) {
 
 /** reader 模式：一个关键词 → 一份角色档案条目 */
 async function searchByReader(keyword, signal) {
+    let keywordsByKeywordOut = [];
     const urls = await collectSourceUrls(keyword, signal);
     if (!urls.length) return { entries: new Map(), details: [] };
     const withText = await readSourcesWithReader(urls, signal);
@@ -919,7 +921,11 @@ async function searchByReader(keyword, signal) {
         throw makeError('READER_MODEL_EMPTY', '整理模型没有返回内容（No message generated）');
     }
     // 剥掉思考内容，只保留从第一个字段开始的正式档案（思考不该进世界书）
-    const content = core.sanitizeProfileOutput(core.cleanProviderText(String(response).trim(), 0), 0);
+    let content = core.sanitizeProfileOutput(core.cleanProviderText(String(response).trim(), 0), 0);
+    // 「激活关键词」那一行从正文里剥掉 → 变成世界书的 key 数组（含本地兜底挖到的别名）
+    const kwInfo = core.extractKeywordLine(content);
+    content = kwInfo.text;
+    const keywords = core.mergeKeywords([keyword], kwInfo.keywords, core.extractAliasKeywords(keyword, content));
     const entries = new Map([[keyword, content]]);
     // 来源只作为词条元数据保存（资料库里可见，不进正文、不注入扮演）
     const sources = withText.filter((s) => String(s.text || '').trim()).map((s) => ({ site: s.site, title: s.title || '', url: s.url }));
@@ -930,8 +936,8 @@ async function searchByReader(keyword, signal) {
         error: s.text ? undefined : { code: 'READER_FAILED', message: s.error || '未读取' },
         url: s.url,
     }));
-    diag('reader:完成', { keyword, chars: content.length, pages: sources.length });
-    return { entries, details, sources };
+    diag('reader:完成', { keyword, chars: content.length, pages: sources.length, keywords });
+    return { entries, details, sources, keywords };
 }
 async function runAllSources(keywords, signal) {
     const settings = getSettings();
@@ -1251,14 +1257,17 @@ async function executeSearch(options = {}) {
             rawMap = new Map();
             const allDetails = [];
             const sourcesByKeyword = {};
+            const keywordsByKw = {};
             for (const kw of keywords) {
                 if (signal.aborted) throw makeError('ABORTED', '已取消');
                 const one = await searchByReader(kw, signal);
                 for (const [k, v] of one.entries) rawMap.set(k, v);
                 if (one.sources?.length) sourcesByKeyword[kw] = one.sources;
+                if (one.keywords?.length) keywordsByKw[kw] = one.keywords;
                 allDetails.push(...one.details);
             }
             state.lastSources = sourcesByKeyword;
+            state.lastKeywordsByKw = keywordsByKw;
             rawMap._summary = {
                 taskCount: allDetails.length,
                 successCount: allDetails.filter((d) => d.status === 'success').length,
@@ -1916,9 +1925,11 @@ async function saveResults(filteredMap, keywords) {
         try {
             // 词条化：每个整理出来的对象一个词条；同名则**更新**（不重复堆叠）
             const sourcesByKeyword = state.lastSources || {};
+            const keywordsByKw = state.lastKeywordsByKw || {};
             const incoming = core.knowledgeMapToEntries(filteredMap, { constant: false }).map((e) => ({
                 ...e,
-                sources: sourcesByKeyword[e.name] || (state.lastResult?.keywords?.includes(e.name) ? state.lastSources?.[e.name] : undefined) || [],
+                sources: sourcesByKeyword[e.name] || [],
+                keywords: core.mergeKeywords(keywordsByKw[e.name] || [], e.keywords, [e.name]),
             }));
             const merged = [...libraryCache.entries];
             for (const entry of incoming) {
@@ -3497,6 +3508,8 @@ window.foxSearch = {
     diagnostics: formatDiag,
     // 调试/自动化用：读取上次结果、手动触发注入、直接改设置
     lastResult: () => state.lastResult,
+    lastKeywords: () => state.lastKeywordsByKw || {},
+    lastSources: () => state.lastSources || {},
     inject: (promptArray) => injectIntoPromptArray(promptArray),
     mountPanel: () => mountSettingsPanel(),
     openLibrary,
